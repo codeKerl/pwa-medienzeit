@@ -41,5 +41,5 @@ jobs:
         run: rsync -avz --delete --exclude='.DS_Store' --exclude='.htaccess' --exclude='server' -e "ssh -o IdentitiesOnly=yes -i ~/.ssh/id_rsa -p ${{ secrets.SSH_PORT }}" dist/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH_MEDIATIME }}/
 
       - name: Deploy PHP API
-        run: rsync -avz --delete --exclude='vendor' --exclude='.htaccess' --exclude='composer.*' -e "ssh -o IdentitiesOnly=yes -i ~/.ssh/id_rsa -p ${{ secrets.SSH_PORT }}" server/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH_MEDIATIME }}/server/
+        run: rsync -avz --delete --exclude='vendor' --exclude='tools' --exclude='.htaccess' --exclude='composer.*' -e "ssh -o IdentitiesOnly=yes -i ~/.ssh/id_rsa -p ${{ secrets.SSH_PORT }}" server/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH_MEDIATIME }}/server/
 
