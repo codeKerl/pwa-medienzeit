@@ -215,10 +215,14 @@ const handleVisibility = () => {
 
 onMounted(() => {
   document.addEventListener('visibilitychange', handleVisibility)
+  window.addEventListener('focus', handleVisibility)
+  window.addEventListener('pageshow', handleVisibility)
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('visibilitychange', handleVisibility)
+  window.removeEventListener('focus', handleVisibility)
+  window.removeEventListener('pageshow', handleVisibility)
 })
 
 resumeIfNeeded()
