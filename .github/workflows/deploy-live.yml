@@ -1,4 +1,3 @@
-
 name: Deploy to Live
 
 on:
@@ -36,9 +35,9 @@ jobs:
           mkdir -p ~/.ssh
           SSH_PORT="${SSH_PORT:-22}"
           if echo "$SSH_KEY" | grep -q "PRIVATE KEY"; then
-            echo "$SSH_KEY" | tr -d '' > ~/.ssh/id_rsa
+            echo "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_rsa
           else
-            echo "$SSH_KEY" | tr -d '' | base64 --decode > ~/.ssh/id_rsa
+            echo "$SSH_KEY" | tr -d '\r' | base64 --decode > ~/.ssh/id_rsa
           fi
           chmod 600 ~/.ssh/id_rsa
           ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "mkdir -p $DEPLOY_PATH"
