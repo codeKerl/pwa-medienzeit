@@ -1,0 +1,83 @@
+import { ref, watch } from 'vue'
+import { defineStore } from 'pinia'
+
+export type SyncEvent =
+  | { type: 'logMedia'; kidId: string; minutes: number; timestamp: number }
+  | { type: 'logReading'; kidId: string; minutes: number; timestamp: number }
+  | { type: 'updateKid'; kidId: string; timestamp: number }
+  | { type: 'resetWeek'; kidId?: string; timestamp: number }
+
+type SyncState = 'idle' | 'syncing' | 'error'
+
+const STORAGE_KEY = 'medienzeit-sync-queue'
+
+export const useSyncStore = defineStore('sync', () => {
+  const queue = ref<SyncEvent[]>([])
+  const lastSyncedAt = ref<number | null>(null)
+  const state = ref<SyncState>('idle')
+  const error = ref<string | null>(null)
+
+  const load = () => {
+    if (typeof localStorage === 'undefined') return
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (raw) {
+      try {
+        queue.value = JSON.parse(raw)
+      } catch (e) {
+        console.warn('Konnte Sync-Queue nicht laden', e)
+      }
+    }
+  }
+
+  const persist = () => {
+    if (typeof localStorage === 'undefined') return
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(queue.value))
+  }
+
+  load()
+
+  watch(queue, persist, { deep: true })
+
+  const enqueue = (event: SyncEvent) => {
+    queue.value.push(event)
+    maybeSync()
+  }
+
+  const syncNow = async () => {
+    if (!queue.value.length) {
+      state.value = 'idle'
+      return
+    }
+
+    state.value = 'syncing'
+    error.value = null
+    try {
+      // Dummy endpoint; replace with your API URL.
+      const res = await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ events: queue.value }),
+      })
+      if (!res.ok) throw new Error(await res.text())
+      queue.value = []
+      lastSyncedAt.value = Date.now()
+      state.value = 'idle'
+    } catch (e) {
+      console.warn('Sync fehlgeschlagen, wird offline gepuffert', e)
+      state.value = 'error'
+      error.value = (e as Error)?.message ?? 'Unbekannter Fehler'
+    }
+  }
+
+  const maybeSync = () => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return
+    void syncNow()
+  }
+
+  const setError = (msg: string) => {
+    error.value = msg
+    state.value = 'error'
+  }
+
+  return { queue, state, lastSyncedAt, error, enqueue, syncNow, maybeSync, setError }
+})
