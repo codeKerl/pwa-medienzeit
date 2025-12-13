@@ -173,7 +173,7 @@ const quickAdd = (value: number) => emit('commit', value)
 onBeforeUnmount(() => clear())
 
 const loadPersistedRun = (): PersistedRun | null => {
-  if (typeof localStorage === 'undefined') return
+  if (typeof localStorage === 'undefined') return null
   const raw = localStorage.getItem(storageKey.value)
   if (!raw) return null
   try {
