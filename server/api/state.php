@@ -38,6 +38,13 @@ $runningTimers = $state['runningTimers'] ?? [];
 $changed = false;
 $nowMs = (int) round(microtime(true) * 1000);
 
+foreach ($kids as &$kid) {
+    if (!isset($kid['logs']) || !is_array($kid['logs'])) {
+        $kid['logs'] = [];
+    }
+}
+unset($kid);
+
 foreach ($runningTimers as $kidId => $timer) {
     $mode = $timer['mode'] ?? 'timer';
     if ($mode !== 'timer') continue;
@@ -50,6 +57,8 @@ foreach ($runningTimers as $kidId => $timer) {
         foreach ($kids as &$existing) {
             if (isset($existing['id']) && $existing['id'] === $kidId) {
                 $existing['mediaUsed'] = max(0, ($existing['mediaUsed'] ?? 0) + $minutes);
+                if (!isset($existing['logs']) || !is_array($existing['logs'])) $existing['logs'] = [];
+                $existing['logs'][] = ['type' => 'timer', 'minutes' => $minutes, 'timestamp' => $nowMs];
                 break;
             }
         }

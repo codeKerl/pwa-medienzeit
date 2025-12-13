@@ -41,6 +41,15 @@ $kids = $state['kids'];
 $pin = $state['pin'];
 $runningTimers = $state['runningTimers'] ?? [];
 $triggerPushes = [];
+$stateChanged = false;
+
+// ensure logs array exists
+foreach ($kids as &$kid) {
+    if (!isset($kid['logs']) || !is_array($kid['logs'])) {
+        $kid['logs'] = [];
+    }
+}
+unset($kid);
 
 $expireTimers = function () use (&$kids, &$runningTimers, &$triggerPushes) {
     $nowMs = (int) round(microtime(true) * 1000);
@@ -57,6 +66,8 @@ $expireTimers = function () use (&$kids, &$runningTimers, &$triggerPushes) {
             foreach ($kids as &$existing) {
                 if (isset($existing['id']) && $existing['id'] === $kidId) {
                     $existing['mediaUsed'] = max(0, ($existing['mediaUsed'] ?? 0) + $minutes);
+                    if (!isset($existing['logs']) || !is_array($existing['logs'])) $existing['logs'] = [];
+                    $existing['logs'][] = ['type' => 'timer', 'minutes' => $minutes, 'timestamp' => $nowMs];
                     break;
                 }
             }
@@ -105,9 +116,13 @@ foreach ($payload['events'] as $event) {
                 foreach ($kids as &$existing) {
                     if ($existing['id'] === $event['kidId']) {
                         $existing['mediaUsed'] = max(0, ($existing['mediaUsed'] ?? 0) + $event['minutes']);
+                        if (!isset($existing['logs']) || !is_array($existing['logs'])) $existing['logs'] = [];
+                        $existing['logs'][] = ['type' => 'media', 'minutes' => $event['minutes'], 'timestamp' => $event['timestamp'] ?? time() * 1000];
                         break;
                     }
                 }
+                unset($existing);
+                $stateChanged = true;
             }
             break;
         case 'logReading':
@@ -115,21 +130,27 @@ foreach ($payload['events'] as $event) {
                 foreach ($kids as &$existing) {
                     if ($existing['id'] === $event['kidId']) {
                         $existing['readingLogged'] = max(0, ($existing['readingLogged'] ?? 0) + $event['minutes']);
+                        if (!isset($existing['logs']) || !is_array($existing['logs'])) $existing['logs'] = [];
+                        $existing['logs'][] = ['type' => 'reading', 'minutes' => $event['minutes'], 'timestamp' => $event['timestamp'] ?? time() * 1000];
                         break;
                     }
                 }
+                unset($existing);
+                $stateChanged = true;
             }
             break;
         case 'resetWeek':
             if (isset($event['kidId'])) {
                 foreach ($kids as &$existing) {
                     if ($existing['id'] === $event['kidId']) {
-                        $existing['mediaUsed'] = 0; $existing['readingLogged'] = 0; break;
+                        $existing['mediaUsed'] = 0; $existing['readingLogged'] = 0; $existing['logs'] = []; break;
                     }
                 }
             } else {
-                foreach ($kids as &$existing) { $existing['mediaUsed'] = 0; $existing['readingLogged'] = 0; }
+                foreach ($kids as &$existing) { $existing['mediaUsed'] = 0; $existing['readingLogged'] = 0; $existing['logs'] = []; }
             }
+            unset($existing);
+            $stateChanged = true;
             break;
         case 'timerStart':
             if (isset($event['kidId'], $event['startedAt'], $event['mode'])) {

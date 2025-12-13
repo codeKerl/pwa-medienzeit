@@ -6,7 +6,7 @@ import ThemeToggle from '@/components/ThemeToggle.vue'
 import Button from '@/components/ui/button.vue'
 import Card from '@/components/ui/card.vue'
 import Progress from '@/components/ui/progress.vue'
-import { useKidsStore } from '@/stores/kids'
+import { useKidsStore, type LogEntry } from '@/stores/kids'
 import { useLiveTimersStore } from '@/stores/liveTimers'
 import { useI18nStore } from '@/stores/i18n'
 
@@ -19,11 +19,28 @@ const i18n = useI18nStore()
 const kidId = computed(() => String(route.params.id))
 const kidSummary = computed(() => store.kidSummaries.find((kid) => kid.id === kidId.value))
 
+const logEntries = computed<LogEntry[]>(() => {
+  const entries = kidSummary.value?.logs ?? []
+  return [...entries].sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0))
+})
+
 const formatMinutes = (value: number) => {
   const hours = Math.floor(value / 60)
   const minutes = Math.round(value % 60)
   if (hours === 0) return `${minutes} min`
   return `${hours}h ${minutes}m`
+}
+
+const formatDateTime = (value: number) => {
+  const date = new Date(value)
+  return date.toLocaleString(undefined, { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })
+}
+
+const formatEntryLabel = (entry: any) => {
+  if (entry.type === 'reading') return i18n.t('labels.reading')
+  if (entry.type === 'reset') return i18n.t('labels.resetWeek')
+  if (entry.type === 'timer') return i18n.t('labels.timer')
+  return i18n.t('labels.mediaTime')
 }
 
 const handleStart = (payload: { mode: string; minutes: number }) => {
@@ -117,6 +134,28 @@ const handleStop = () => {
     <Card v-else class="p-5">
       <p class="text-muted-foreground">Kind nicht gefunden.</p>
       <Button class="mt-3" @click="router.push('/')">Zur Übersicht</Button>
+    </Card>
+
+    <Card v-if="kidSummary" class="p-5">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-xs uppercase tracking-wide text-muted-foreground">{{ i18n.t('labels.timer') }}</p>
+          <h3 class="text-lg font-semibold">{{ i18n.t('labels.log') }}</h3>
+        </div>
+      </div>
+      <div class="mt-4 space-y-3" v-if="logEntries.length">
+        <div v-for="entry in logEntries" :key="entry.timestamp" class="flex items-center justify-between rounded-lg border border-border/70 px-3 py-2">
+          <div class="space-y-0.5">
+            <p class="text-sm font-semibold">{{ formatEntryLabel(entry) }}</p>
+            <p class="text-xs text-muted-foreground">{{ formatDateTime(entry.timestamp) }}</p>
+          </div>
+          <p class="text-sm font-semibold">
+            <span v-if="entry.type === 'reset'">—</span>
+            <span v-else>+{{ entry.minutes ?? 0 }} min</span>
+          </p>
+        </div>
+      </div>
+      <p v-else class="text-sm text-muted-foreground">{{ i18n.t('texts.noBookings') }}</p>
     </Card>
   </div>
 </template>

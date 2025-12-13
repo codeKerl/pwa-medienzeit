@@ -53,6 +53,7 @@ const messages: Record<Lang, Record<string, string>> = {
     'labels.fromReading': 'aus {read} Lesen',
     'labels.liveTimers': 'Live-Timer laufen:',
     'labels.syncNow': 'Sync jetzt',
+    'labels.log': 'Buchungen',
     'texts.countdownInfo': 'Zählt herunter und bucht automatisch.',
     'texts.stopwatchInfo': 'Stoppen zum Buchen.',
     'texts.pinError': 'Falscher Pin.',
@@ -62,6 +63,7 @@ const messages: Record<Lang, Record<string, string>> = {
     'texts.liveTimerLabel': 'Timer',
     'texts.stopwatchLabel': 'Stoppuhr',
     'texts.quickHint': '+5 / +10 antippen für schnelle Buchungen.',
+    'texts.noBookings': 'Noch keine Buchungen.',
   },
   en: {
     'app.tag': 'Screen time',
@@ -112,6 +114,7 @@ const messages: Record<Lang, Record<string, string>> = {
     'labels.fromReading': 'from {read} reading',
     'labels.liveTimers': 'Live timers running:',
     'labels.syncNow': 'Sync now',
+    'labels.log': 'Bookings',
     'texts.countdownInfo': 'Counts down and books automatically.',
     'texts.stopwatchInfo': 'Stop to book.',
     'texts.pinError': 'Wrong PIN.',
@@ -121,6 +124,7 @@ const messages: Record<Lang, Record<string, string>> = {
     'texts.liveTimerLabel': 'Timer',
     'texts.stopwatchLabel': 'Stopwatch',
     'texts.quickHint': 'Tap +5 / +10 for quick bookings.',
+    'texts.noBookings': 'No bookings yet.',
   },
 }
 

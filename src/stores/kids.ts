@@ -12,12 +12,19 @@ export interface ChildProfile {
   mediaUsed: number // minutes already used
   readingLogged: number // minutes read
   accent: string
+  logs?: LogEntry[]
 }
 
 export interface PersistedState {
   kids: ChildProfile[]
   pin: string
   runningTimers?: Record<string, { kidId: string; mode: 'timer' | 'stopwatch'; startedAt: number; minutes?: number }>
+}
+
+export type LogEntry = {
+  type: 'media' | 'reading' | 'reset' | 'timer'
+  minutes?: number
+  timestamp: number
 }
 
 const STORAGE_KEY = 'medienzeit-app-state'
@@ -34,6 +41,7 @@ const defaultKids: ChildProfile[] = [
     mediaUsed: 160,
     readingLogged: 75,
     accent: 'from-indigo-500 to-blue-500',
+    logs: [],
   },
   {
     id: 'k2',
@@ -44,6 +52,7 @@ const defaultKids: ChildProfile[] = [
     mediaUsed: 120,
     readingLogged: 120,
     accent: 'from-emerald-500 to-teal-500',
+    logs: [],
   },
 ]
 
@@ -53,6 +62,20 @@ export const useKidsStore = defineStore('kids', () => {
   const sync = useSyncStore()
   const live = useLiveTimersStore()
   let pollId: number | undefined
+  let focusBound = false
+
+  const normalizeKid = (kid: ChildProfile): ChildProfile => ({
+    ...kid,
+    logs: Array.isArray(kid.logs)
+      ? kid.logs
+          .filter((e) => typeof e?.timestamp === 'number')
+          .map((e) => ({
+            type: e.type ?? 'media',
+            minutes: typeof e.minutes === 'number' ? e.minutes : undefined,
+            timestamp: e.timestamp,
+          }))
+      : [],
+  })
 
   const load = () => {
     if (typeof localStorage === 'undefined') return
@@ -60,7 +83,7 @@ export const useKidsStore = defineStore('kids', () => {
     if (!raw) return
     try {
       const parsed = JSON.parse(raw) as PersistedState
-      if (parsed.kids?.length) kids.value = parsed.kids
+      if (parsed.kids?.length) kids.value = parsed.kids.map((k) => normalizeKid(k))
       if (parsed.pin) pin.value = parsed.pin
     } catch (error) {
       console.warn('Konnte gespeicherte Daten nicht laden', error)
@@ -84,7 +107,7 @@ export const useKidsStore = defineStore('kids', () => {
       const res = await fetch(`${API_BASE}/api/state.php`, { headers: API_KEY ? { Authorization: `Bearer ${API_KEY}` } : {} })
       if (!res.ok) return
       const data = (await res.json()) as PersistedState
-      if (data.kids?.length) kids.value = data.kids
+      if (data.kids?.length) kids.value = data.kids.map((k) => normalizeKid(k))
       if (data.pin) pin.value = data.pin
       if (data.runningTimers) live.hydrate(data.runningTimers)
       persist()
@@ -99,11 +122,28 @@ export const useKidsStore = defineStore('kids', () => {
     pollId = window.setInterval(fetchServerState, 10000)
   }
 
+  const bindFocusRefresh = () => {
+    if (typeof window === 'undefined' || focusBound) return
+    focusBound = true
+    const onFocus = () => void fetchServerState()
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void fetchServerState()
+    }
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisible)
+  }
 
   load()
   fetchServerState()
   watch([kids, pin], persist, { deep: true })
+  watch(
+    () => sync.lastSyncedAt,
+    () => {
+      void fetchServerState()
+    },
+  )
   startPolling()
+  bindFocusRefresh()
 
   const totalMediaCapacity = (kid: ChildProfile) =>
     kid.mediaWeeklyLimit + Math.min(kid.readingLogged, kid.readingWeeklyMax) * kid.readingToMediaFactor
@@ -124,6 +164,7 @@ export const useKidsStore = defineStore('kids', () => {
     const kid: ChildProfile = {
       ...payload,
       id: crypto.randomUUID(),
+      logs: [],
     }
     kids.value.push(kid)
     sync.enqueue({ type: 'addKid', kid, timestamp: Date.now() })
@@ -146,6 +187,7 @@ export const useKidsStore = defineStore('kids', () => {
         ? {
             ...kid,
             mediaUsed: Math.max(0, Math.min(totalMediaCapacity(kid), kid.mediaUsed + minutes)),
+            logs: [...(kid.logs ?? []), { type: 'media', minutes, timestamp: Date.now() }],
           }
         : kid,
     )
@@ -155,14 +197,20 @@ export const useKidsStore = defineStore('kids', () => {
   const logReading = (id: string, minutes: number) => {
     if (minutes <= 0) return
     kids.value = kids.value.map((kid) =>
-      kid.id === id ? { ...kid, readingLogged: Math.max(0, kid.readingLogged + minutes) } : kid,
+      kid.id === id
+        ? {
+            ...kid,
+            readingLogged: Math.max(0, kid.readingLogged + minutes),
+            logs: [...(kid.logs ?? []), { type: 'reading', minutes, timestamp: Date.now() }],
+          }
+        : kid,
     )
     sync.enqueue({ type: 'logReading', kidId: id, minutes, timestamp: Date.now() })
   }
 
   const resetWeek = (id?: string) => {
     kids.value = kids.value.map((kid) =>
-      id && kid.id !== id ? kid : { ...kid, mediaUsed: 0, readingLogged: 0 },
+      id && kid.id !== id ? kid : { ...kid, mediaUsed: 0, readingLogged: 0, logs: [] },
     )
     sync.enqueue({ type: 'resetWeek', kidId: id, timestamp: Date.now() })
   }
