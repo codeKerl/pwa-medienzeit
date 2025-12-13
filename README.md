@@ -6,7 +6,7 @@ Vue 3 + Vite PWA zum Tracken wöchentlicher Medienzeit. Kinder buchen ihre Zeit 
 - State: Pinia + LocalStorage-Persistenz
 - PWA: Offline-ready, Homescreen-installierbar (Workbox SW)
 
-## Inhalt
+## Inhalt 
 
 - [Funktionen](#funktionen)
 - [Screenshots](#screenshots)
