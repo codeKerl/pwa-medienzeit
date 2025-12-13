@@ -23,16 +23,16 @@ jobs:
       - name: Install SSH Key
         uses: shimataro/ssh-key-action@v2
         with:
-          key: ${{ secrets.SSH_KEY_DEPLOY }}
+          key: ${{ secrets.SSH_KEY }}
           known_hosts: unnecessary
 
       - name: Adding Known Hosts
-        run: ssh-keyscan -p ${{ secrets.SSH_PORT }} -H ${{ secrets.SERVER_URL }} >> ~/.ssh/known_hosts
+        run: ssh-keyscan -p ${{ secrets.SSH_PORT }} -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
       - name: Create deploy directory
-        run: ssh -o IdentitiesOnly=yes -i ~/.ssh/id_rsa -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_URL }} "mkdir -p ${{ secrets.DEPLOY_PATH_MEDIATIME }}"
+        run: ssh -o IdentitiesOnly=yes -i ~/.ssh/id_rsa -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p ${{ secrets.DEPLOY_PATH_MEDIATIME }}"
 
       - name: Deploy dist via rsync
         run: rsync -avz --delete --exclude='.DS_Store' \
           -e "ssh -o IdentitiesOnly=yes -i ~/.ssh/id_rsa -p ${{ secrets.SSH_PORT }}" \
-          dist/ ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_URL }}:${{ secrets.DEPLOY_PATH_MEDIATIME }}/
+          dist/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH_MEDIATIME }}/
