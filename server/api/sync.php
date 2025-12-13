@@ -42,6 +42,35 @@ $pin = $state['pin'];
 $runningTimers = $state['runningTimers'] ?? [];
 $triggerPushes = [];
 
+$expireTimers = function () use (&$kids, &$runningTimers, &$triggerPushes) {
+    $nowMs = (int) round(microtime(true) * 1000);
+    $changed = false;
+    foreach ($runningTimers as $kidId => $timer) {
+        $mode = $timer['mode'] ?? 'timer';
+        if ($mode !== 'timer') continue;
+        $startedAt = isset($timer['startedAt']) ? (int) $timer['startedAt'] : null;
+        $minutes = isset($timer['minutes']) ? (int) $timer['minutes'] : null;
+        if ($startedAt === null || $minutes === null) continue;
+        $durationMs = max(0, $minutes) * 60 * 1000;
+        if ($durationMs === 0) continue;
+        if ($nowMs - $startedAt >= $durationMs) {
+            foreach ($kids as &$existing) {
+                if (isset($existing['id']) && $existing['id'] === $kidId) {
+                    $existing['mediaUsed'] = max(0, ($existing['mediaUsed'] ?? 0) + $minutes);
+                    break;
+                }
+            }
+            unset($existing);
+            $triggerPushes[] = $kidId;
+            unset($runningTimers[$kidId]);
+            $changed = true;
+        }
+    }
+    return $changed;
+};
+
+$stateChanged = $expireTimers();
+
 foreach ($payload['events'] as $event) {
     if (!is_array($event) || !isset($event['type'])) continue;
     switch ($event['type']) {
@@ -122,11 +151,18 @@ foreach ($payload['events'] as $event) {
 }
 unset($existing);
 
+$stateChanged = $expireTimers() || $stateChanged;
+
 $state = ['kids' => $kids, 'pin' => $pin, 'runningTimers' => $runningTimers];
 if (!is_dir(dirname($dataPath))) {
     mkdir(dirname($dataPath), 0775, true);
 }
-file_put_contents($dataPath, json_encode($state));
+if (!file_exists($dataPath) || $stateChanged) {
+    file_put_contents($dataPath, json_encode($state));
+} else {
+    // still persist to record incoming events even wenn kein Auto-Stop griff
+    file_put_contents($dataPath, json_encode($state));
+}
 
 // optional push on timerStop
 if (!empty($triggerPushes) && file_exists($subsPath)) {

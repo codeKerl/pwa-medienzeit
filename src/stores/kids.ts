@@ -1,6 +1,7 @@
 import { computed, ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 import { useSyncStore } from './sync'
+import { useLiveTimersStore } from './liveTimers'
 
 export interface ChildProfile {
   id: string
@@ -16,6 +17,7 @@ export interface ChildProfile {
 export interface PersistedState {
   kids: ChildProfile[]
   pin: string
+  runningTimers?: Record<string, { kidId: string; mode: 'timer' | 'stopwatch'; startedAt: number; minutes?: number }>
 }
 
 const STORAGE_KEY = 'medienzeit-app-state'
@@ -49,6 +51,7 @@ export const useKidsStore = defineStore('kids', () => {
   const kids = ref<ChildProfile[]>([...defaultKids])
   const pin = ref('2042')
   const sync = useSyncStore()
+  const live = useLiveTimersStore()
   let pollId: number | undefined
 
   const load = () => {
@@ -83,6 +86,7 @@ export const useKidsStore = defineStore('kids', () => {
       const data = (await res.json()) as PersistedState
       if (data.kids?.length) kids.value = data.kids
       if (data.pin) pin.value = data.pin
+      if (data.runningTimers) live.hydrate(data.runningTimers)
       persist()
     } catch (error) {
       console.warn('Konnte Server-Status nicht laden', error)

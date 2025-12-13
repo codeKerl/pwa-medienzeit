@@ -3,7 +3,6 @@ import { computed, ref } from 'vue'
 import ParentDashboard from '@/components/ParentDashboard.vue'
 import SyncStatus from '@/components/SyncStatus.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
-import LanguageToggle from '@/components/LanguageToggle.vue'
 import TimerControls from '@/components/TimerControls.vue'
 import Button from '@/components/ui/button.vue'
 import Card from '@/components/ui/card.vue'
@@ -51,6 +50,7 @@ const handleStart = (kidId: string, payload: { mode: string; minutes: number }) 
     label: payload.mode === 'timer' ? 'Timer' : 'Stoppuhr',
     startedAt: Date.now(),
     mode: payload.mode as 'timer' | 'stopwatch',
+    minutes: payload.minutes,
   })
 }
 
@@ -74,7 +74,6 @@ const handleStop = (kidId: string) => {
       <div class="flex flex-wrap gap-3">
         <Button @click="parentOpen = true">{{ i18n.t('buttons.parent') }}</Button>
         <ThemeToggle />
-        <LanguageToggle />
         <SyncStatus />
       </div>
     </header>

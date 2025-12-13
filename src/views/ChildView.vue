@@ -3,7 +3,6 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import TimerControls from '@/components/TimerControls.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
-import LanguageToggle from '@/components/LanguageToggle.vue'
 import Button from '@/components/ui/button.vue'
 import Card from '@/components/ui/card.vue'
 import Progress from '@/components/ui/progress.vue'
@@ -27,13 +26,14 @@ const formatMinutes = (value: number) => {
   return `${hours}h ${minutes}m`
 }
 
-const handleStart = (mode: string) => {
+const handleStart = (payload: { mode: string; minutes: number }) => {
   if (!kidSummary.value) return
   live.add({
     kidId: kidSummary.value.id,
-    label: mode === 'timer' ? 'Timer' : 'Stoppuhr',
+    label: payload.mode === 'timer' ? 'Timer' : 'Stoppuhr',
     startedAt: Date.now(),
-    mode: mode as 'timer' | 'stopwatch',
+    mode: payload.mode as 'timer' | 'stopwatch',
+    minutes: payload.minutes,
   })
 }
 
@@ -57,7 +57,6 @@ const handleStop = () => {
         <Button variant="outline" @click="router.back()">{{ i18n.t('buttons.back') }}</Button>
         <Button @click="router.push('/')">{{ i18n.t('buttons.overview') }}</Button>
         <ThemeToggle />
-        <LanguageToggle />
       </div>
     </div>
 
@@ -98,7 +97,7 @@ const handleStop = () => {
           :hint="`Noch ${kidSummary ? formatMinutes(store.mediaLeft(kidSummary)) : ''} frei`"
           :persist-key="kidSummary ? `media-${kidSummary.id}` : 'media-unknown'"
           @commit="(minutes) => kidSummary && store.logMedia(kidSummary!.id, minutes)"
-          @start="(payload) => handleStart(payload.mode)"
+          @start="(payload) => handleStart(payload)"
           @stop="handleStop"
         />
         <TimerControls
@@ -109,7 +108,7 @@ const handleStop = () => {
           :hint="`1 min Lesen = ${kidSummary ? kidSummary.readingToMediaFactor : 0} min Medien`"
           :persist-key="kidSummary ? `reading-${kidSummary.id}` : 'reading-unknown'"
           @commit="(minutes) => kidSummary && store.logReading(kidSummary!.id, minutes)"
-          @start="(payload) => handleStart(payload.mode)"
+          @start="(payload) => handleStart(payload)"
           @stop="handleStop"
         />
       </div>

@@ -32,4 +32,36 @@ if (!is_array($state)) {
 } else if (!array_key_exists('runningTimers', $state)) {
     $state['runningTimers'] = [];
 }
+
+$kids = $state['kids'] ?? [];
+$runningTimers = $state['runningTimers'] ?? [];
+$changed = false;
+$nowMs = (int) round(microtime(true) * 1000);
+
+foreach ($runningTimers as $kidId => $timer) {
+    $mode = $timer['mode'] ?? 'timer';
+    if ($mode !== 'timer') continue;
+    $startedAt = isset($timer['startedAt']) ? (int) $timer['startedAt'] : null;
+    $minutes = isset($timer['minutes']) ? (int) $timer['minutes'] : null;
+    if ($startedAt === null || $minutes === null) continue;
+    $durationMs = max(0, $minutes) * 60 * 1000;
+    if ($durationMs === 0) continue;
+    if ($nowMs - $startedAt >= $durationMs) {
+        foreach ($kids as &$existing) {
+            if (isset($existing['id']) && $existing['id'] === $kidId) {
+                $existing['mediaUsed'] = max(0, ($existing['mediaUsed'] ?? 0) + $minutes);
+                break;
+            }
+        }
+        unset($existing);
+        unset($runningTimers[$kidId]);
+        $changed = true;
+    }
+}
+
+$state = ['kids' => $kids, 'pin' => $state['pin'] ?? '', 'runningTimers' => $runningTimers];
+if ($changed) {
+    file_put_contents($dataPath, json_encode($state));
+}
+
 echo json_encode($state);
