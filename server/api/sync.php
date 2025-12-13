@@ -1,5 +1,5 @@
 <?php
-// POST /api/sync -> apply events to shared state
+// POST /api/sync -> apply events to shared state and optionally send push on timerStop
 header('Content-Type: application/json');
 
 $apiKey = getenv('MEDIENZEIT_API_KEY');
@@ -25,7 +25,8 @@ if (!is_array($payload) || !isset($payload['events']) || !is_array($payload['eve
 }
 
 $dataPath = __DIR__ . '/../data/state.json';
-$state = ['kids' => [], 'pin' => ''];
+$subsPath = __DIR__ . '/../data/subscriptions.json';
+$state = ['kids' => [], 'pin' => '', 'runningTimers' => []];
 if (file_exists($dataPath)) {
     $json = file_get_contents($dataPath);
     if ($json !== false) {
@@ -38,6 +39,8 @@ if (file_exists($dataPath)) {
 
 $kids = $state['kids'];
 $pin = $state['pin'];
+$runningTimers = $state['runningTimers'] ?? [];
+$triggerPushes = [];
 
 foreach ($payload['events'] as $event) {
     if (!is_array($event) || !isset($event['type'])) continue;
@@ -55,6 +58,7 @@ foreach ($payload['events'] as $event) {
         case 'deleteKid':
             if (isset($event['kidId'])) {
                 $kids = array_values(array_filter($kids, fn($k) => $k['id'] !== $event['kidId']));
+                unset($runningTimers[$event['kidId']]);
             }
             break;
         case 'updateKid':
@@ -98,15 +102,72 @@ foreach ($payload['events'] as $event) {
                 foreach ($kids as &$existing) { $existing['mediaUsed'] = 0; $existing['readingLogged'] = 0; }
             }
             break;
+        case 'timerStart':
+            if (isset($event['kidId'], $event['startedAt'], $event['mode'])) {
+                $runningTimers[$event['kidId']] = [
+                    'kidId' => $event['kidId'],
+                    'mode' => $event['mode'],
+                    'startedAt' => $event['startedAt'],
+                    'minutes' => $event['minutes'] ?? 0,
+                ];
+            }
+            break;
+        case 'timerStop':
+            if (isset($event['kidId']) && isset($runningTimers[$event['kidId']])) {
+                $triggerPushes[] = $event['kidId'];
+                unset($runningTimers[$event['kidId']]);
+            }
+            break;
     }
 }
 unset($existing);
 
-$state = ['kids' => $kids, 'pin' => $pin];
+$state = ['kids' => $kids, 'pin' => $pin, 'runningTimers' => $runningTimers];
 if (!is_dir(dirname($dataPath))) {
     mkdir(dirname($dataPath), 0775, true);
 }
 file_put_contents($dataPath, json_encode($state));
 
+// optional push on timerStop
+if (!empty($triggerPushes) && file_exists($subsPath)) {
+    $publicKey = getenv('MEDIENZEIT_VAPID_PUBLIC');
+    $privateKey = getenv('MEDIENZEIT_VAPID_PRIVATE');
+    $subject = getenv('MEDIENZEIT_VAPID_SUBJECT') ?: 'mailto:you@example.com';
+    if ($publicKey && $privateKey) {
+        require_once __DIR__ . '/../vendor/autoload.php';
+        $subs = json_decode(file_get_contents($subsPath), true) ?: [];
+        $payloads = [];
+        foreach ($triggerPushes as $kidId) {
+            $kidName = null;
+            foreach ($kids as $k) if ($k['id'] === $kidId) { $kidName = $k['name']; break; }
+            $payloads[] = json_encode([
+                'title' => 'Timer',
+                'body' => ($kidName ? "$kidName: " : '') . 'Timer ist abgelaufen',
+                'url' => '/',
+            ]);
+        }
+        $webPush = new Minishlink\WebPush\WebPush([
+            'VAPID' => [
+                'subject' => $subject,
+                'publicKey' => $publicKey,
+                'privateKey' => $privateKey,
+            ],
+        ]);
+        foreach ($subs as $s) {
+            try {
+                $subObj = Minishlink\WebPush\Subscription::create($s);
+                foreach ($payloads as $p) {
+                    $webPush->sendOneNotification($subObj, $p);
+                }
+            } catch (Exception $e) {
+                // ignore
+            }
+        }
+        foreach ($webPush->flush() as $report) {
+            // optional logging
+        }
+    }
+}
+
 http_response_code(200);
-echo json_encode(['ok' => true, 'kids' => $kids]);
+echo json_encode(['ok' => true, 'kids' => $kids, 'runningTimers' => $runningTimers]);

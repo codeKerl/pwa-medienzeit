@@ -11,6 +11,7 @@ import Progress from '@/components/ui/progress.vue'
 import { useKidsStore } from '@/stores/kids'
 import { useLiveTimersStore } from '@/stores/liveTimers'
 import { useI18nStore } from '@/stores/i18n'
+import { registerPush } from '@/lib/push'
 
 const store = useKidsStore()
 const live = useLiveTimersStore()
@@ -29,6 +30,13 @@ const totalBonus = computed(() =>
 )
 
 const liveTimers = computed(() => live.list)
+
+const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY
+const apiBase = import.meta.env.VITE_API_BASE ?? '/server'
+const apiKey = import.meta.env.VITE_API_KEY
+if (vapidPublicKey) {
+  registerPush(vapidPublicKey, apiBase, apiKey).catch((e) => console.warn('Push-Registration fehlgeschlagen', e))
+}
 
 const formatMinutes = (value: number) => {
   const hours = Math.floor(value / 60)

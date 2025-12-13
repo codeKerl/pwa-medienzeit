@@ -71,6 +71,9 @@ npm run lint
   - Crontab: `59 23 * * 0 API_URL=... API_TOKEN=... /path/to/reset_week_cron.sh >/tmp/medienzeit-reset.log 2>&1`
 - Lokale PHP-Entwicklung: ddev-Config liegt unter `.ddev/`; API unter `/server`, `VITE_API_BASE` anpassen, optional `VITE_API_KEY`/`MEDIENZEIT_API_KEY` setzen.
 
+- Push: Web Push über PHP (`server/api/subscribe.php` speichert Subscriptions, `server/api/sync.php` sendet optional Push bei timerStop). Setze `VITE_VAPID_PUBLIC_KEY` im Build und serverseitig `MEDIENZEIT_VAPID_PUBLIC/PRIVATE/SUBJECT` (VAPID-Keys). Subscriptions liegen in `server/data/subscriptions.json`.
+
+
 ## Project Setup
 
 ```sh

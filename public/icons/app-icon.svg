@@ -1,0 +1,33 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="64" y1="32" x2="448" y2="480" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#10B981" />
+      <stop offset="1" stop-color="#6366F1" />
+    </linearGradient>
+    <clipPath id="clip-book">
+      <polygon points="0,512 0,0 512,512" />
+    </clipPath>
+    <clipPath id="clip-desktop">
+      <polygon points="0,0 512,0 512,512" />
+    </clipPath>
+  </defs>
+  <rect x="32" y="32" width="448" height="448" rx="96" fill="url(#bg)"/>
+  <path d="M80 80 L432 432" stroke="white" stroke-width="24" stroke-linecap="round"/>
+
+  <!-- Book icon (fills lower-left triangle) -->
+  <g clip-path="url(#clip-book)">
+    <rect x="60" y="260" width="240" height="220" rx="32" fill="white" fill-opacity="0.9" />
+    <rect x="180" y="260" width="12" height="220" fill="#0F172A" fill-opacity="0.3" />
+    <rect x="90" y="290" width="140" height="12" rx="6" fill="#0F172A" fill-opacity="0.2" />
+    <rect x="90" y="330" width="140" height="12" rx="6" fill="#0F172A" fill-opacity="0.2" />
+    <rect x="90" y="370" width="140" height="12" rx="6" fill="#0F172A" fill-opacity="0.2" />
+  </g>
+
+  <!-- Desktop/monitor icon (fills upper-right triangle) -->
+  <g clip-path="url(#clip-desktop)">
+    <rect x="220" y="60" width="220" height="150" rx="18" fill="white" fill-opacity="0.9" />
+    <rect x="250" y="100" width="160" height="14" rx="7" fill="#0F172A" fill-opacity="0.2" />
+    <rect x="250" y="124" width="120" height="14" rx="7" fill="#0F172A" fill-opacity="0.2" />
+    <rect x="290" y="190" width="80" height="18" rx="9" fill="white" fill-opacity="0.7" />
+  </g>
+</svg>
