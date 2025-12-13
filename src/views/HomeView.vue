@@ -54,7 +54,7 @@ const handleStop = (kidId: string) => {
 <template>
   <div class="mx-auto max-w-6xl px-4 py-10">
     <header class="flex flex-col gap-6 pb-8 md:flex-row md:items-center md:justify-between">
-      <div class="space-y-3">
+      <!-- <div class="space-y-3">
         <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">{{ i18n.t('app.tag') }}</p>
         <h1 class="text-4xl font-bold leading-tight md:text-5xl">
           {{ i18n.t('app.title') }}
@@ -62,7 +62,7 @@ const handleStop = (kidId: string) => {
         <p class="max-w-3xl text-lg text-muted-foreground">
           {{ i18n.t('app.desc') }}
         </p>
-      </div>
+      </div> -->
       <div class="flex flex-wrap gap-3">
         <Button @click="parentOpen = true">{{ i18n.t('buttons.parent') }}</Button>
         <ThemeToggle />
@@ -90,7 +90,7 @@ const handleStop = (kidId: string) => {
     </div>
 
     <div class="grid gap-4 md:grid-cols-3">
-      <Card class="p-4 md:col-span-2">
+      <!-- <Card class="p-4 md:col-span-2">
         <div class="flex items-center justify-between gap-4">
           <div>
             <p class="text-sm text-muted-foreground">{{ i18n.t('labels.available') }}</p>
@@ -111,7 +111,7 @@ const handleStop = (kidId: string) => {
         <p class="mt-2 text-sm text-muted-foreground">
           {{ i18n.t('labels.offlineDesc') }}
         </p>
-      </Card>
+      </Card> -->
     </div>
 
     <section class="mt-8 space-y-4">
