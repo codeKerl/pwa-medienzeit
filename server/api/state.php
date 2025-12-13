@@ -26,4 +26,10 @@ if ($json === false) {
     exit;
 }
 
-echo $json;
+$state = json_decode($json, true);
+if (!is_array($state)) {
+    $state = ['kids' => [], 'pin' => '', 'runningTimers' => []];
+} else if (!array_key_exists('runningTimers', $state)) {
+    $state['runningTimers'] = [];
+}
+echo json_encode($state);

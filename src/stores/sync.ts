@@ -9,6 +9,8 @@ export type SyncEvent =
   | { type: 'logReading'; kidId: string; minutes: number; timestamp: number }
   | { type: 'updateKid'; kidId: string; kid: Partial<ChildProfile>; timestamp: number }
   | { type: 'resetWeek'; kidId?: string; timestamp: number }
+  | { type: 'timerStart'; kidId: string; mode: 'timer' | 'stopwatch'; startedAt: number; minutes: number; timestamp: number }
+  | { type: 'timerStop'; kidId: string; timestamp: number }
 
 type SyncState = 'idle' | 'syncing' | 'error'
 

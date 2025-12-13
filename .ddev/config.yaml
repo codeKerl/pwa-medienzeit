@@ -1,0 +1,32 @@
+name: medienzeit
+
+webserver_type: apache-fpm
+router_http_port: ""
+router_https_port: ""
+xdebug_enabled: false
+additional_hostnames: []
+additional_fqdns: []
+mutagen_enabled: false
+use_dns_when_possible: true
+composer_version: ""
+web_environment: []
+php_version: "8.2"
+database:
+  type: mariadb
+  version: "10.6"
+
+# Mount the project root; webroot is the Vite app root so we can serve /server
+
+nfs_mount_enabled: false
+host_mount_fallback: unfs3
+
+hooks:
+  post-start:
+    - exec: echo "DDEV project for medienzeit"
+
+# Map project root so Apache can serve index.html and server/api/
+web_extra_service_overrides: []
+
+# Set project webroot to current directory; adjust if needed
+router_global_port_alistener: ""
+

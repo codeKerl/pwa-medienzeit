@@ -65,10 +65,11 @@ npm run lint
 
 ## Server Sync & Cron
 
-- Sync-Events werden in `src/stores/sync.ts` gesammelt und an `/api/sync` gepostet (Platzhalter). Passe Endpoint/Auth an.
+- Sync-Events werden in `src/stores/sync.ts` gesammelt und an `/api/sync.php` gepostet; `VITE_API_BASE` (default `/server`) und optional `VITE_API_KEY` setzen.
 - Wöchentlicher Reset (Sonntag 23:59): Cronjob auf dem Server anlegen, z. B. per `server/reset_week_cron.sh`:
   - `API_URL=https://example.com/api/reset-week API_TOKEN=token ./server/reset_week_cron.sh`
   - Crontab: `59 23 * * 0 API_URL=... API_TOKEN=... /path/to/reset_week_cron.sh >/tmp/medienzeit-reset.log 2>&1`
+- Lokale PHP-Entwicklung: ddev-Config liegt unter `.ddev/`; API unter `/server`, `VITE_API_BASE` anpassen, optional `VITE_API_KEY`/`MEDIENZEIT_API_KEY` setzen.
 
 ## Project Setup
 

@@ -1,21 +1,25 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import { useSyncStore } from './sync'
 
 export type LiveTimer = {
   kidId: string
   label: string
   startedAt: number
   mode: 'timer' | 'stopwatch'
+  minutes?: number
 }
 
 const CHANNEL = 'medienzeit-live'
 
 export const useLiveTimersStore = defineStore('liveTimers', () => {
   const running = ref<Record<string, LiveTimer>>({})
+  const sync = useSyncStore()
 
   const add = (payload: LiveTimer) => {
     running.value = { ...running.value, [payload.kidId]: payload }
     broadcast({ type: 'start', payload })
+    sync.enqueue({ type: 'timerStart', kidId: payload.kidId, mode: payload.mode, startedAt: payload.startedAt, minutes: payload.minutes ?? 0, timestamp: Date.now() })
   }
 
   const remove = (kidId: string) => {
@@ -23,6 +27,7 @@ export const useLiveTimersStore = defineStore('liveTimers', () => {
     delete next[kidId]
     running.value = next
     broadcast({ type: 'stop', kidId })
+    sync.enqueue({ type: 'timerStop', kidId, timestamp: Date.now() })
   }
 
   const list = computed(() => Object.values(running.value))
