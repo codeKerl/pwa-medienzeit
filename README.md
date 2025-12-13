@@ -41,6 +41,20 @@ Vue 3 + Vite PWA zum Tracken wöchentlicher Medienzeit. Kinder buchen ihre Zeit 
   - Server (Apache/PHP): `MEDIENZEIT_API_KEY` (muss mit `VITE_API_KEY` matchen, sonst 401).
 - Sync-Flow: App lädt bei Start `/api/state.php`, persistiert lokal, pollt alle 10s, sendet Änderungen als Events an `/api/sync.php` (add/update/delete/log/reset).
 - Noindex: `index.html` enthält `meta robots=noindex,nofollow`.
+
+### API-Key & VAPID Keys
+- API-Key generieren: `openssl rand -hex 32` → als `VITE_API_KEY` (GitHub Secret) und `MEDIENZEIT_API_KEY` (z. B. via `.htaccess`/vHost) setzen.
+- Header-Durchreichung: auf Apache ggf. in `/server/.htaccess` ergänzen `RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]` und `SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1`, damit der Bearer-Header an PHP ankommt. Test: `curl -i -H "Authorization: Bearer <KEY>" https://<host>/server/api/state.php` ⇒ 200.
+- VAPID-Keypair erzeugen (Composer im `server/` installiert):
+  ```sh
+  cd server
+  php -d display_errors=1 -d error_reporting=E_ALL tools/generate-vapid.php
+  ```
+  Ausgabe PUBLIC=... / PRIVATE=...:
+
+  Frontend: `VITE_VAPID_PUBLIC_KEY` (Secret) setzen.
+
+  Server: `MEDIENZEIT_VAPID_PUBLIC`, `MEDIENZEIT_VAPID_PRIVATE`, `MEDIENZEIT_VAPID_SUBJECT` per `.htaccess`/vHost setzen.
 ## Schnellstart
 
 ```sh

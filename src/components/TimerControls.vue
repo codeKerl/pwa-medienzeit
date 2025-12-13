@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import Button from './ui/button.vue'
 import Input from './ui/input.vue'
 import Progress from './ui/progress.vue'
@@ -36,6 +36,7 @@ const state = reactive({
   minutes: props.defaultMinutes,
   elapsedSeconds: 0,
   running: false,
+  startedAt: null as number | null,
 })
 
 const intervalId = ref<number>()
@@ -91,10 +92,12 @@ const clearPersist = () => {
 
 const persistRun = () => {
   if (typeof localStorage === 'undefined') return
+  const startedAt = state.startedAt ?? Date.now()
+  state.startedAt = startedAt
   const payload: PersistedRun = {
     mode: state.mode,
     minutes: state.minutes,
-    startedAt: Date.now(),
+    startedAt,
   }
   localStorage.setItem(storageKey.value, JSON.stringify(payload))
 }
@@ -114,34 +117,44 @@ const reset = () => {
   clear()
   state.running = false
   state.elapsedSeconds = 0
+  state.startedAt = null
+  clearPersist()
+}
+
+const updateElapsedFromNow = () => {
+  if (!state.startedAt) return
+  const diffMs = Date.now() - state.startedAt
+  state.elapsedSeconds = Math.max(0, Math.floor(diffMs / 1000))
+}
+
+const finishTimer = (autoComplete: boolean) => {
+  updateElapsedFromNow()
+  state.running = false
+  clear()
+  if (autoComplete && state.mode === 'timer') playChime()
+  commitMinutes()
+  state.elapsedSeconds = 0
+  state.startedAt = null
+  emit('stop')
   clearPersist()
 }
 
 const tick = () => {
-  state.elapsedSeconds += 1
+  if (!state.startedAt) return
+  updateElapsedFromNow()
   if (state.mode === 'timer' && state.elapsedSeconds >= totalSeconds.value) {
-    state.running = false
-    clear()
-    playChime()
-    commitMinutes()
-    state.elapsedSeconds = 0
-    emit('stop')
-    clearPersist()
+    finishTimer(true)
   }
 }
 
 const toggle = () => {
   if (state.running) {
-    state.running = false
-    clear()
-    commitMinutes()
-    state.elapsedSeconds = 0
-    emit('stop')
-    clearPersist()
+    finishTimer(false)
     return
   }
 
   state.elapsedSeconds = 0
+  state.startedAt = Date.now()
   state.running = true
   clear()
   emit('start', { mode: state.mode, minutes: state.minutes })
@@ -159,33 +172,54 @@ const quickAdd = (value: number) => emit('commit', value)
 
 onBeforeUnmount(() => clear())
 
-const resumeIfNeeded = () => {
+const loadPersistedRun = (): PersistedRun | null => {
   if (typeof localStorage === 'undefined') return
   const raw = localStorage.getItem(storageKey.value)
-  if (!raw) return
+  if (!raw) return null
   try {
-    const data = JSON.parse(raw) as PersistedRun
-    state.mode = data.mode
-    state.minutes = data.minutes
-    state.elapsedSeconds = Math.max(0, Math.floor((Date.now() - data.startedAt) / 1000))
-    if (state.mode === 'timer' && state.elapsedSeconds >= totalSeconds.value) {
-      // timer would have finished while away
-      commitMinutes()
-      emit('stop')
-      clearPersist()
-      state.running = false
-      state.elapsedSeconds = 0
-      return
-    }
-    state.running = true
-    clear()
-    emit('start', { mode: state.mode, minutes: state.minutes })
-    intervalId.value = window.setInterval(tick, 1000)
+    return JSON.parse(raw) as PersistedRun
   } catch (error) {
     console.warn('Konnte Timer nicht wiederherstellen', error)
     clearPersist()
+    return null
   }
 }
+
+const resumeIfNeeded = (emitStart = true) => {
+  const data = loadPersistedRun()
+  if (!data) return
+  state.mode = data.mode
+  state.minutes = data.minutes
+  state.startedAt = data.startedAt
+  updateElapsedFromNow()
+  if (state.mode === 'timer' && state.elapsedSeconds >= totalSeconds.value) {
+    finishTimer(true)
+    return
+  }
+  state.running = true
+  clear()
+  if (emitStart) emit('start', { mode: state.mode, minutes: state.minutes })
+  intervalId.value = window.setInterval(tick, 1000)
+}
+
+const handleVisibility = () => {
+  if (typeof document === 'undefined') return
+  if (document.visibilityState === 'visible') {
+    resumeIfNeeded(false)
+    if (state.running && !intervalId.value) {
+      intervalId.value = window.setInterval(tick, 1000)
+    }
+    tick()
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('visibilitychange', handleVisibility)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('visibilitychange', handleVisibility)
+})
 
 resumeIfNeeded()
 </script>
