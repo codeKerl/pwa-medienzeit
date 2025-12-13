@@ -20,6 +20,9 @@ jobs:
 
       - run: npm ci
       - run: npm run build
+        env:
+          VITE_API_KEY: ${{ secrets.VITE_API_KEY }}
+          VITE_API_BASE: ${{ secrets.VITE_API_BASE }}
 
       - name: Install SSH Key
         uses: shimataro/ssh-key-action@v2
@@ -35,3 +38,9 @@ jobs:
 
       - name: Deploy dist via rsync
         run: rsync -avz --delete --exclude='.DS_Store' -e "ssh -o IdentitiesOnly=yes -i ~/.ssh/id_rsa -p ${{ secrets.SSH_PORT }}" dist/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH_MEDIATIME }}/
+
+
+      - name: Deploy PHP API
+        run: rsync -avz --delete \
+          -e "ssh -o IdentitiesOnly=yes -i ~/.ssh/id_rsa -p ${{ secrets.SSH_PORT }}" \
+          server/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH_MEDIATIME }}/server/

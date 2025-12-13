@@ -32,6 +32,15 @@ Vue 3 + Vite PWA zum Tracken wöchentlicher Medienzeit. Kinder buchen ihre Zeit 
 
 ![Kind-Detail](docs/screenshots/child.png)
 
+
+## Backend / Sync
+
+- PHP-API unter `server/api/state.php` (GET) und `server/api/sync.php` (POST). Zustände liegen in `server/data/state.json`.
+- Env/Secrets:
+  - Frontend: `VITE_API_BASE` (Standard `/server`), `VITE_API_KEY` (optional Bearer Token).
+  - Server (Apache/PHP): `MEDIENZEIT_API_KEY` (muss mit `VITE_API_KEY` matchen, sonst 401).
+- Sync-Flow: App lädt bei Start `/api/state.php`, persistiert lokal, pollt alle 10s, sendet Änderungen als Events an `/api/sync.php` (add/update/delete/log/reset).
+- Noindex: `index.html` enthält `meta robots=noindex,nofollow`.
 ## Schnellstart
 
 ```sh

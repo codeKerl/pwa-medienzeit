@@ -1,15 +1,20 @@
 import { ref, watch } from 'vue'
 import { defineStore } from 'pinia'
+import type { ChildProfile } from './kids'
 
 export type SyncEvent =
+  | { type: 'addKid'; kid: ChildProfile; timestamp: number }
+  | { type: 'deleteKid'; kidId: string; timestamp: number }
   | { type: 'logMedia'; kidId: string; minutes: number; timestamp: number }
   | { type: 'logReading'; kidId: string; minutes: number; timestamp: number }
-  | { type: 'updateKid'; kidId: string; timestamp: number }
+  | { type: 'updateKid'; kidId: string; kid: Partial<ChildProfile>; timestamp: number }
   | { type: 'resetWeek'; kidId?: string; timestamp: number }
 
 type SyncState = 'idle' | 'syncing' | 'error'
 
 const STORAGE_KEY = 'medienzeit-sync-queue'
+const API_BASE = import.meta.env.VITE_API_BASE ?? '/server'
+const API_KEY = import.meta.env.VITE_API_KEY ?? ''
 
 export const useSyncStore = defineStore('sync', () => {
   const queue = ref<SyncEvent[]>([])
@@ -52,10 +57,11 @@ export const useSyncStore = defineStore('sync', () => {
     state.value = 'syncing'
     error.value = null
     try {
-      // Dummy endpoint; replace with your API URL.
-      const res = await fetch('/api/sync', {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (API_KEY) headers.Authorization = `Bearer ${API_KEY}`
+      const res = await fetch(`${API_BASE}/api/sync.php`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ events: queue.value }),
       })
       if (!res.ok) throw new Error(await res.text())

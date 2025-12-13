@@ -19,6 +19,8 @@ export interface PersistedState {
 }
 
 const STORAGE_KEY = 'medienzeit-app-state'
+const API_BASE = import.meta.env.VITE_API_BASE ?? '/server'
+const API_KEY = import.meta.env.VITE_API_KEY ?? ''
 
 const defaultKids: ChildProfile[] = [
   {
@@ -47,6 +49,7 @@ export const useKidsStore = defineStore('kids', () => {
   const kids = ref<ChildProfile[]>([...defaultKids])
   const pin = ref('2042')
   const sync = useSyncStore()
+  let pollId: number | undefined
 
   const load = () => {
     if (typeof localStorage === 'undefined') return
@@ -70,9 +73,33 @@ export const useKidsStore = defineStore('kids', () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
   }
 
-  load()
 
+
+
+  const fetchServerState = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/state.php`, { headers: API_KEY ? { Authorization: `Bearer ${API_KEY}` } : {} })
+      if (!res.ok) return
+      const data = (await res.json()) as PersistedState
+      if (data.kids?.length) kids.value = data.kids
+      if (data.pin) pin.value = data.pin
+      persist()
+    } catch (error) {
+      console.warn('Konnte Server-Status nicht laden', error)
+    }
+  }
+
+  const startPolling = () => {
+    if (typeof window === 'undefined') return
+    if (pollId) window.clearInterval(pollId)
+    pollId = window.setInterval(fetchServerState, 10000)
+  }
+
+
+  load()
+  fetchServerState()
   watch([kids, pin], persist, { deep: true })
+  startPolling()
 
   const totalMediaCapacity = (kid: ChildProfile) =>
     kid.mediaWeeklyLimit + Math.min(kid.readingLogged, kid.readingWeeklyMax) * kid.readingToMediaFactor
@@ -90,18 +117,22 @@ export const useKidsStore = defineStore('kids', () => {
   }
 
   const addKid = (payload: Omit<ChildProfile, 'id'>) => {
-    kids.value.push({
+    const kid: ChildProfile = {
       ...payload,
       id: crypto.randomUUID(),
-    })
+    }
+    kids.value.push(kid)
+    sync.enqueue({ type: 'addKid', kid, timestamp: Date.now() })
   }
 
   const updateKid = (id: string, patch: Partial<ChildProfile>) => {
     kids.value = kids.value.map((kid) => (kid.id === id ? { ...kid, ...patch } : kid))
+    sync.enqueue({ type: 'updateKid', kidId: id, kid: patch, timestamp: Date.now() })
   }
 
   const deleteKid = (id: string) => {
     kids.value = kids.value.filter((kid) => kid.id !== id)
+    sync.enqueue({ type: 'deleteKid', kidId: id, timestamp: Date.now() })
   }
 
   const logMedia = (id: string, minutes: number) => {
