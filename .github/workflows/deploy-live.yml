@@ -29,11 +29,16 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_KEY: ${{ secrets.SSH_KEY }}
-          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH_MEDIATIME }}
         run: |
           mkdir -p ~/.ssh
-          echo "$SSH_KEY" | tr -d '\r' | base64 --decode > ~/.ssh/id_rsa
+          SSH_PORT="${SSH_PORT:-22}"
+          if echo "$SSH_KEY" | grep -q "PRIVATE KEY"; then
+            echo "$SSH_KEY" | tr -d '' > ~/.ssh/id_rsa
+          else
+            echo "$SSH_KEY" | tr -d '' | base64 --decode > ~/.ssh/id_rsa
+          fi
           chmod 600 ~/.ssh/id_rsa
-          ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "mkdir -p $DEPLOY_PATH_MEDIATIME"
-          rsync -avz -e "ssh -p $SSH_PORT -o StrictHostKeyChecking=no" dist/ "$SSH_USER@$SSH_HOST:$DEPLOY_PATH_MEDIATIME/"
+          ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "mkdir -p $DEPLOY_PATH"
+          rsync -avz -e "ssh -p $SSH_PORT -o StrictHostKeyChecking=no" dist/ "$SSH_USER@$SSH_HOST:$DEPLOY_PATH/"
