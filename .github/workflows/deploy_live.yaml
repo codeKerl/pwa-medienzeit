@@ -1,0 +1,38 @@
+name: Deploy to Live
+
+on:
+  push:
+    branches:
+      - live
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Install SSH Key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_KEY_DEPLOY }}
+          known_hosts: unnecessary
+
+      - name: Adding Known Hosts
+        run: ssh-keyscan -p ${{ secrets.SSH_PORT }} -H ${{ secrets.SERVER_URL }} >> ~/.ssh/known_hosts
+
+      - name: Create deploy directory
+        run: ssh -o IdentitiesOnly=yes -i ~/.ssh/id_rsa -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_URL }} "mkdir -p ${{ secrets.DEPLOY_PATH_MEDIATIME }}"
+
+      - name: Deploy dist via rsync
+        run: rsync -avz --delete --exclude='.DS_Store' \
+          -e "ssh -o IdentitiesOnly=yes -i ~/.ssh/id_rsa -p ${{ secrets.SSH_PORT }}" \
+          dist/ ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_URL }}:${{ secrets.DEPLOY_PATH_MEDIATIME }}/
