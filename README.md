@@ -6,6 +6,31 @@ Vue 3 + Vite PWA zum Tracken wöchentlicher Medienzeit. Kinder buchen ihre Zeit 
 - State: Pinia + LocalStorage-Persistenz
 - PWA: Offline-ready, Homescreen-installierbar (Workbox SW)
 
+## Inhalt
+
+- [Funktionen](#funktionen)
+- [Screenshots](#screenshots)
+- [Schnellstart](#schnellstart)
+- [Build / Tests](#build--tests)
+- [English summary](#english-summary)
+- [Server Sync & Cron](#server-sync--cron)
+
+## Funktionen
+
+- **Kinder-Dashboards**: Timer oder Stoppuhr pro Kind für Medien- und Lesezeit, inkl. Schnellbuchungen (+5/+10/+15/+20) und Fortschrittsbalken.
+- **Lesebonus**: Lesezeit kann wöchentliche Medienzeit erhöhen, Faktor konfigurierbar.
+- **Eltern-Dashboard**: PIN-geschützt, Kinder anlegen/bearbeiten/löschen, Limits setzen, Wochen-Reset (global/je Kind), Verbrauch reduzieren.
+- **Live-Timer-Hinweis**: Laufende Timer werden tabsynchron angezeigt (BroadcastChannel), Timer laufen nach Reload weiter (Persistenz in LocalStorage).
+- **Theme & Language**: Light/Dark-Mode-Toggle (respektiert System) und DE/EN-Umschaltung.
+- **PWA**: Installierbar, offlinefähig; State bleibt lokal erhalten, optionaler Sync-Endpunkt.
+
+## Screenshots
+
+Platzhalter-Pfade, bitte eigene Shots ablegen (z. B. `docs/screenshots/`):
+- `docs/screenshots/home.png` – Kinder-Dashboard mit Balken, Timern und Live-Badge
+- `docs/screenshots/parent.png` – Eltern-Dashboard mit PIN, Einstellungen, Reset/Minus-Buttons
+- `docs/screenshots/child.png` – Individuelles Kind-Dashboard
+
 ## Schnellstart
 
 ```sh
