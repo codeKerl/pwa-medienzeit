@@ -97,7 +97,7 @@ const handleStop = () => {
           :quick-minutes="[5, 10, 20]"
           :hint="`Noch ${kidSummary ? formatMinutes(store.mediaLeft(kidSummary)) : ''} frei`"
           :persist-key="kidSummary ? `media-${kidSummary.id}` : 'media-unknown'"
-          @commit="(minutes) => kidSummary && store.logMedia(kidSummary.id, minutes)"
+          @commit="(minutes) => kidSummary && store.logMedia(kidSummary!.id, minutes)"
           @start="(payload) => handleStart(payload.mode)"
           @stop="handleStop"
         />
@@ -108,7 +108,7 @@ const handleStop = () => {
           :quick-minutes="[10, 20, 40]"
           :hint="`1 min Lesen = ${kidSummary ? kidSummary.readingToMediaFactor : 0} min Medien`"
           :persist-key="kidSummary ? `reading-${kidSummary.id}` : 'reading-unknown'"
-          @commit="(minutes) => kidSummary && store.logReading(kidSummary.id, minutes)"
+          @commit="(minutes) => kidSummary && store.logReading(kidSummary!.id, minutes)"
           @start="(payload) => handleStart(payload.mode)"
           @stop="handleStop"
         />
