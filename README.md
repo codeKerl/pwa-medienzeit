@@ -26,10 +26,11 @@ Vue 3 + Vite PWA zum Tracken wöchentlicher Medienzeit. Kinder buchen ihre Zeit 
 
 ## Screenshots
 
-Platzhalter-Pfade, bitte eigene Shots ablegen (z. B. `docs/screenshots/`):
-- `docs/screenshots/home.png` – Kinder-Dashboard mit Balken, Timern und Live-Badge
-- `docs/screenshots/parent.png` – Eltern-Dashboard mit PIN, Einstellungen, Reset/Minus-Buttons
-- `docs/screenshots/child.png` – Individuelles Kind-Dashboard
+![Home Dashboard](docs/screenshots/home.png)
+
+![Eltern-Dashboard](docs/screenshots/parent.png)
+
+![Kind-Detail](docs/screenshots/child.png)
 
 ## Schnellstart
 
