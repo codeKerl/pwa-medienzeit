@@ -206,9 +206,8 @@ const handleVisibility = () => {
   if (typeof document === 'undefined') return
   if (document.visibilityState === 'visible') {
     resumeIfNeeded(false)
-    if (state.running && !intervalId.value) {
-      intervalId.value = window.setInterval(tick, 1000)
-    }
+    clear()
+    if (state.running) intervalId.value = window.setInterval(tick, 1000)
     tick()
   }
 }
