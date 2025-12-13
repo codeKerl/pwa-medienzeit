@@ -18,7 +18,6 @@ self.addEventListener('push', (event) => {
     body,
     icon: '/icons/icon-192.png',
     badge: '/icons/icon-192.png',
-    vibrate: [200, 100, 200],
     data: data.url || '/',
   }
   event.waitUntil(self.registration.showNotification(title, options))
@@ -27,5 +26,5 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
   const target = (event.notification as any).data || '/'
-  event.waitUntil(clients.openWindow(target))
+  event.waitUntil(self.clients.openWindow(target))
 })
