@@ -34,6 +34,4 @@ jobs:
         run: ssh -o IdentitiesOnly=yes -i ~/.ssh/id_rsa -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p ${{ secrets.DEPLOY_PATH_MEDIATIME }}"
 
       - name: Deploy dist via rsync
-        run: rsync -avz --delete --exclude='.DS_Store' \
-          -e "ssh -o IdentitiesOnly=yes -i ~/.ssh/id_rsa -p ${{ secrets.SSH_PORT }}" \
-          dist/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH_MEDIATIME }}/
+        run: rsync -avz --delete --exclude='.DS_Store' -e "ssh -o IdentitiesOnly=yes -i ~/.ssh/id_rsa -p ${{ secrets.SSH_PORT }}" dist/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH_MEDIATIME }}/
