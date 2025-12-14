@@ -229,25 +229,41 @@ if (!empty($triggerPushes) && file_exists($subsPath)) {
                 'url' => '/',
             ]);
         }
-        $webPush = new Minishlink\WebPush\WebPush([
-            'VAPID' => [
-                'subject' => $subject,
-                'publicKey' => $publicKey,
-                'privateKey' => $privateKey,
-            ],
-        ]);
-        foreach ($subs as $s) {
-            try {
-                $subObj = Minishlink\WebPush\Subscription::create($s);
-                foreach ($payloads as $p) {
-                    $webPush->sendOneNotification($subObj, $p);
+        // bis zu 3 Versuche pro Subscription (best effort)
+        $maxAttempts = 3;
+        $attempt = 1;
+        $queue = $subs;
+        while ($attempt <= $maxAttempts && !empty($queue)) {
+            $webPush = new Minishlink\WebPush\WebPush([
+                'VAPID' => [
+                    'subject' => $subject,
+                    'publicKey' => $publicKey,
+                    'privateKey' => $privateKey,
+                ],
+            ]);
+            foreach ($queue as $s) {
+                try {
+                    $subObj = Minishlink\WebPush\Subscription::create($s);
+                    foreach ($payloads as $p) {
+                        $webPush->sendOneNotification($subObj, $p);
+                    }
+                } catch (Exception $e) {
+                    // ignore invalid subscription object
                 }
-            } catch (Exception $e) {
-                // ignore
             }
-        }
-        foreach ($webPush->flush() as $report) {
-            // optional logging
+            $failedEndpoints = [];
+            foreach ($webPush->flush() as $report) {
+                if (!$report->isSuccess()) {
+                    $failedEndpoints[] = $report->getEndpoint();
+                }
+            }
+            if (empty($failedEndpoints)) {
+                break;
+            }
+            $queue = array_values(array_filter($queue, function ($s) use ($failedEndpoints) {
+                return in_array($s['endpoint'] ?? '', $failedEndpoints, true);
+            }));
+            $attempt++;
         }
     }
 }
