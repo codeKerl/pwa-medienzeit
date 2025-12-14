@@ -29,12 +29,12 @@ export const useLiveTimersStore = defineStore('liveTimers', () => {
     })
   }
 
-  const remove = (kidId: string) => {
+  const remove = (kidId: string, minutes?: number) => {
     const next = { ...running.value }
     delete next[kidId]
     running.value = next
     broadcast({ type: 'stop', kidId })
-    sync.enqueue({ type: 'timerStop', kidId, timestamp: Date.now() })
+    sync.enqueue({ type: 'timerStop', kidId, minutes, timestamp: Date.now() })
   }
 
   const list = computed(() => Object.values(running.value))

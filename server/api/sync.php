@@ -26,7 +26,7 @@ if (!is_array($payload) || !isset($payload['events']) || !is_array($payload['eve
 
 $dataPath = __DIR__ . '/../data/state.json';
 $subsPath = __DIR__ . '/../data/subscriptions.json';
-$state = ['kids' => [], 'pin' => '', 'runningTimers' => []];
+$state = ['kids' => [], 'pin' => '', 'runningTimers' => [], 'revision' => 0, 'processedEvents' => []];
 if (file_exists($dataPath)) {
     $json = file_get_contents($dataPath);
     if ($json !== false) {
@@ -42,6 +42,8 @@ $pin = $state['pin'];
 $runningTimers = $state['runningTimers'] ?? [];
 $triggerPushes = [];
 $stateChanged = false;
+$revision = isset($state['revision']) ? (int)$state['revision'] : 0;
+$processedEvents = is_array($state['processedEvents'] ?? null) ? $state['processedEvents'] : [];
 
 // ensure logs array exists
 foreach ($kids as &$kid) {
@@ -51,7 +53,7 @@ foreach ($kids as &$kid) {
 }
 unset($kid);
 
-$expireTimers = function () use (&$kids, &$runningTimers, &$triggerPushes) {
+$expireTimers = function () use (&$kids, &$runningTimers, &$triggerPushes, &$stateChanged) {
     $nowMs = (int) round(microtime(true) * 1000);
     $changed = false;
     foreach ($runningTimers as $kidId => $timer) {
@@ -84,6 +86,10 @@ $stateChanged = $expireTimers();
 
 foreach ($payload['events'] as $event) {
     if (!is_array($event) || !isset($event['type'])) continue;
+    $eventId = $event['eventId'] ?? null;
+    if ($eventId && in_array($eventId, $processedEvents, true)) {
+        continue; // already processed
+    }
     switch ($event['type']) {
         case 'addKid':
             if (isset($event['kid']) && is_array($event['kid'])) {
@@ -99,6 +105,7 @@ foreach ($payload['events'] as $event) {
             if (isset($event['kidId'])) {
                 $kids = array_values(array_filter($kids, fn($k) => $k['id'] !== $event['kidId']));
                 unset($runningTimers[$event['kidId']]);
+                $stateChanged = true;
             }
             break;
         case 'updateKid':
@@ -160,21 +167,40 @@ foreach ($payload['events'] as $event) {
                     'startedAt' => $event['startedAt'],
                     'minutes' => $event['minutes'] ?? 0,
                 ];
+                $stateChanged = true;
             }
             break;
         case 'timerStop':
             if (isset($event['kidId']) && isset($runningTimers[$event['kidId']])) {
+                $minutes = $event['minutes'] ?? ($runningTimers[$event['kidId']]['minutes'] ?? 0);
+                foreach ($kids as &$existing) {
+                    if (isset($existing['id']) && $existing['id'] === $event['kidId']) {
+                        $existing['mediaUsed'] = max(0, ($existing['mediaUsed'] ?? 0) + $minutes);
+                        if (!isset($existing['logs']) || !is_array($existing['logs'])) $existing['logs'] = [];
+                        $existing['logs'][] = ['type' => 'timer', 'minutes' => $minutes, 'timestamp' => $event['timestamp'] ?? time() * 1000];
+                        break;
+                    }
+                }
+                unset($existing);
                 $triggerPushes[] = $event['kidId'];
                 unset($runningTimers[$event['kidId']]);
+                $stateChanged = true;
             }
             break;
+    }
+    if ($eventId) {
+        $processedEvents[] = $eventId;
+        if (count($processedEvents) > 500) {
+            $processedEvents = array_slice($processedEvents, -500);
+        }
     }
 }
 unset($existing);
 
 $stateChanged = $expireTimers() || $stateChanged;
 
-$state = ['kids' => $kids, 'pin' => $pin, 'runningTimers' => $runningTimers];
+$revision = $stateChanged ? $revision + 1 : $revision;
+$state = ['kids' => $kids, 'pin' => $pin, 'runningTimers' => $runningTimers, 'revision' => $revision, 'processedEvents' => $processedEvents];
 if (!is_dir(dirname($dataPath))) {
     mkdir(dirname($dataPath), 0775, true);
 }
@@ -227,4 +253,4 @@ if (!empty($triggerPushes) && file_exists($subsPath)) {
 }
 
 http_response_code(200);
-echo json_encode(['ok' => true, 'kids' => $kids, 'runningTimers' => $runningTimers]);
+echo json_encode(['ok' => true, 'kids' => $kids, 'runningTimers' => $runningTimers, 'revision' => $revision]);

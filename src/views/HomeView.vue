@@ -44,7 +44,7 @@ const formatMinutes = (value: number) => {
   return `${hours}h ${minutes}m`
 }
 
-const handleStart = (kidId: string, payload: { mode: string; minutes: number }) => {
+const handleStartMedia = (kidId: string, payload: { mode: string; minutes: number }) => {
   live.add({
     kidId,
     label: payload.mode === 'timer' ? 'Timer' : 'Stoppuhr',
@@ -54,8 +54,13 @@ const handleStart = (kidId: string, payload: { mode: string; minutes: number }) 
   })
 }
 
-const handleStop = (kidId: string) => {
-  live.remove(kidId)
+const handleStopMedia = (kidId: string, payload: { mode: string; minutes: number }) => {
+  live.remove(kidId, payload.minutes)
+  // Buchung erfolgt serverseitig über timerStop-Event; optional könnte man hier lokal optimistisch updaten
+}
+
+const handleStopReading = (kidId: string, payload: { mode: string; minutes: number }) => {
+  store.logReading(kidId, payload.minutes)
 }
 </script>
 
@@ -170,24 +175,23 @@ const handleStop = (kidId: string) => {
               :label="i18n.t('labels.mediaTime')"
               :accent="kid.accent"
               :default-minutes="30"
-              :quick-minutes="[5, 10, 20]"
-              :hint="`Noch ${formatMinutes(store.mediaLeft(kid))} frei`"
-              :persist-key="`media-${kid.id}`"
-              @commit="(minutes) => store.logMedia(kid.id, minutes)"
-              @start="(payload) => handleStart(kid.id, payload)"
-              @stop="() => handleStop(kid.id)"
-            />
-            <TimerControls
-              :label="i18n.t('labels.reading')"
-              accent="from-amber-500 to-orange-400"
-              :default-minutes="20"
-              :quick-minutes="[10, 20, 40]"
-              :hint="`1 min Lesen = ${kid.readingToMediaFactor} min Medien`"
-              :persist-key="`reading-${kid.id}`"
-              @commit="(minutes) => store.logReading(kid.id, minutes)"
-              @start="(payload) => handleStart(kid.id, payload)"
-              @stop="() => handleStop(kid.id)"
-            />
+          :quick-minutes="[5, 10, 20]"
+          :hint="`Noch ${formatMinutes(store.mediaLeft(kid))} frei`"
+          :persist-key="`media-${kid.id}`"
+          @commit="(minutes) => store.logMedia(kid.id, minutes)"
+          @start="(payload) => handleStartMedia(kid.id, payload)"
+          @stop="(payload) => handleStopMedia(kid.id, payload)"
+        />
+        <TimerControls
+          :label="i18n.t('labels.reading')"
+          accent="from-amber-500 to-orange-400"
+          :default-minutes="20"
+          :quick-minutes="[10, 20, 40]"
+          :hint="`1 min Lesen = ${kid.readingToMediaFactor} min Medien`"
+          :persist-key="`reading-${kid.id}`"
+          @commit="(minutes) => store.logReading(kid.id, minutes)"
+          @stop="(payload) => handleStopReading(kid.id, payload)"
+        />
           </div>
 
           <div class="mt-4 rounded-xl bg-muted/60 p-3">

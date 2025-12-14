@@ -43,7 +43,7 @@ const formatEntryLabel = (entry: any) => {
   return i18n.t('labels.mediaTime')
 }
 
-const handleStart = (payload: { mode: string; minutes: number }) => {
+const handleStartMedia = (payload: { mode: string; minutes: number }) => {
   if (!kidSummary.value) return
   live.add({
     kidId: kidSummary.value.id,
@@ -54,9 +54,15 @@ const handleStart = (payload: { mode: string; minutes: number }) => {
   })
 }
 
-const handleStop = () => {
+const handleStopMedia = (payload: { mode: string; minutes: number }) => {
   if (!kidSummary.value) return
-  live.remove(kidSummary.value.id)
+  live.remove(kidSummary.value.id, payload.minutes)
+  // server verbucht über timerStop-Event
+}
+
+const handleStopReading = (payload: { mode: string; minutes: number }) => {
+  if (!kidSummary.value) return
+  store.logReading(kidSummary.value.id, payload.minutes)
 }
 </script>
 
@@ -114,8 +120,8 @@ const handleStop = () => {
           :hint="`Noch ${kidSummary ? formatMinutes(store.mediaLeft(kidSummary)) : ''} frei`"
           :persist-key="kidSummary ? `media-${kidSummary.id}` : 'media-unknown'"
           @commit="(minutes) => kidSummary && store.logMedia(kidSummary!.id, minutes)"
-          @start="(payload) => handleStart(payload)"
-          @stop="handleStop"
+          @start="(payload) => handleStartMedia(payload)"
+          @stop="(payload) => handleStopMedia(payload)"
         />
         <TimerControls
           :label="i18n.t('labels.reading')"
@@ -125,8 +131,7 @@ const handleStop = () => {
           :hint="`1 min Lesen = ${kidSummary ? kidSummary.readingToMediaFactor : 0} min Medien`"
           :persist-key="kidSummary ? `reading-${kidSummary.id}` : 'reading-unknown'"
           @commit="(minutes) => kidSummary && store.logReading(kidSummary!.id, minutes)"
-          @start="(payload) => handleStart(payload)"
-          @stop="handleStop"
+          @stop="(payload) => handleStopReading(payload)"
         />
       </div>
     </div>

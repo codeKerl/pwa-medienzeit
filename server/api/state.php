@@ -28,15 +28,24 @@ if ($json === false) {
 
 $state = json_decode($json, true);
 if (!is_array($state)) {
-    $state = ['kids' => [], 'pin' => '', 'runningTimers' => []];
-} else if (!array_key_exists('runningTimers', $state)) {
-    $state['runningTimers'] = [];
+    $state = ['kids' => [], 'pin' => '', 'runningTimers' => [], 'revision' => 0];
+} else {
+    if (!array_key_exists('runningTimers', $state)) $state['runningTimers'] = [];
+    if (!array_key_exists('revision', $state)) $state['revision'] = 0;
 }
 
 $kids = $state['kids'] ?? [];
 $runningTimers = $state['runningTimers'] ?? [];
+$revision = isset($state['revision']) ? (int)$state['revision'] : 0;
 $changed = false;
 $nowMs = (int) round(microtime(true) * 1000);
+
+foreach ($kids as &$kid) {
+    if (!isset($kid['logs']) || !is_array($kid['logs'])) {
+        $kid['logs'] = [];
+    }
+}
+unset($kid);
 
 foreach ($kids as &$kid) {
     if (!isset($kid['logs']) || !is_array($kid['logs'])) {
@@ -68,8 +77,9 @@ foreach ($runningTimers as $kidId => $timer) {
     }
 }
 
-$state = ['kids' => $kids, 'pin' => $state['pin'] ?? '', 'runningTimers' => $runningTimers];
+$state = ['kids' => $kids, 'pin' => $state['pin'] ?? '', 'runningTimers' => $runningTimers, 'revision' => $revision];
 if ($changed) {
+    $state['revision'] = $revision + 1;
     file_put_contents($dataPath, json_encode($state));
 }
 

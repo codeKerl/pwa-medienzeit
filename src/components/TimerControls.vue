@@ -26,9 +26,9 @@ const props = withDefaults(
 )
 
 const emit = defineEmits<{
-  commit: [minutes: number]
+  commit: [minutes: number] // quick-adds
   start: [payload: { mode: Mode; minutes: number }]
-  stop: []
+  stop: [payload: { mode: Mode; minutes: number }]
 }>()
 
 const state = reactive({
@@ -107,10 +107,9 @@ const clear = () => {
   intervalId.value = undefined
 }
 
-const commitMinutes = () => {
+const computedMinutes = () => {
   const seconds = state.mode === 'timer' ? Math.min(totalSeconds.value, state.elapsedSeconds || totalSeconds.value) : state.elapsedSeconds
-  const minutes = Math.max(1, Math.round(seconds / 60))
-  emit('commit', minutes)
+  return Math.max(1, Math.round(seconds / 60))
 }
 
 const reset = () => {
@@ -132,10 +131,10 @@ const finishTimer = (autoComplete: boolean) => {
   state.running = false
   clear()
   if (autoComplete && state.mode === 'timer') playChime()
-  commitMinutes()
+  const minutes = computedMinutes()
+  emit('stop', { mode: state.mode, minutes })
   state.elapsedSeconds = 0
   state.startedAt = null
-  emit('stop')
   clearPersist()
 }
 
@@ -149,7 +148,14 @@ const tick = () => {
 
 const toggle = () => {
   if (state.running) {
-    finishTimer(false)
+    updateElapsedFromNow()
+    const minutes = computedMinutes()
+    state.running = false
+    clear()
+    emit('stop', { mode: state.mode, minutes })
+    state.elapsedSeconds = 0
+    state.startedAt = null
+    clearPersist()
     return
   }
 

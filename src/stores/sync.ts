@@ -2,21 +2,25 @@ import { ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 import type { ChildProfile } from './kids'
 
+type BaseSync = { eventId: string; timestamp: number }
+
 export type SyncEvent =
-  | { type: 'addKid'; kid: ChildProfile; timestamp: number }
-  | { type: 'deleteKid'; kidId: string; timestamp: number }
-  | { type: 'logMedia'; kidId: string; minutes: number; timestamp: number }
-  | { type: 'logReading'; kidId: string; minutes: number; timestamp: number }
-  | { type: 'updateKid'; kidId: string; kid: Partial<ChildProfile>; timestamp: number }
-  | { type: 'resetWeek'; kidId?: string; timestamp: number }
-  | { type: 'timerStart'; kidId: string; mode: 'timer' | 'stopwatch'; startedAt: number; minutes: number; timestamp: number }
-  | { type: 'timerStop'; kidId: string; timestamp: number }
+  | (BaseSync & { type: 'addKid'; kid: ChildProfile })
+  | (BaseSync & { type: 'deleteKid'; kidId: string })
+  | (BaseSync & { type: 'logMedia'; kidId: string; minutes: number })
+  | (BaseSync & { type: 'logReading'; kidId: string; minutes: number })
+  | (BaseSync & { type: 'updateKid'; kidId: string; kid: Partial<ChildProfile> })
+  | (BaseSync & { type: 'resetWeek'; kidId?: string })
+  | (BaseSync & { type: 'timerStart'; kidId: string; mode: 'timer' | 'stopwatch'; startedAt: number; minutes: number })
+  | (BaseSync & { type: 'timerStop'; kidId: string; minutes?: number })
 
 type SyncState = 'idle' | 'syncing' | 'error'
 
 const STORAGE_KEY = 'medienzeit-sync-queue'
 const API_BASE = import.meta.env.VITE_API_BASE ?? '/server'
 const API_KEY = import.meta.env.VITE_API_KEY ?? ''
+
+type EventInput = Omit<SyncEvent, 'eventId'> & Partial<Pick<SyncEvent, 'eventId'>>
 
 export const useSyncStore = defineStore('sync', () => {
   const queue = ref<SyncEvent[]>([])
@@ -45,8 +49,11 @@ export const useSyncStore = defineStore('sync', () => {
 
   watch(queue, persist, { deep: true })
 
-  const enqueue = (event: SyncEvent) => {
-    queue.value.push(event)
+  const genId = () => (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : Math.random().toString(36).slice(2))
+
+  const enqueue = (event: any) => {
+    const eventId = event.eventId ?? genId()
+    queue.value.push({ ...(event as SyncEvent), eventId, timestamp: event.timestamp ?? Date.now() })
     maybeSync()
   }
 
@@ -59,6 +66,12 @@ export const useSyncStore = defineStore('sync', () => {
     state.value = 'syncing'
     error.value = null
     try {
+      // ensure all events have ids/timestamps (backward compatibility)
+      queue.value = queue.value.map((evt) => ({
+        ...evt,
+        eventId: evt.eventId ?? genId(),
+        timestamp: evt.timestamp ?? Date.now(),
+      }))
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
       if (API_KEY) headers.Authorization = `Bearer ${API_KEY}`
       const res = await fetch(`${API_BASE}/api/sync.php`, {

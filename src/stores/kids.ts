@@ -19,6 +19,7 @@ export interface PersistedState {
   kids: ChildProfile[]
   pin: string
   runningTimers?: Record<string, { kidId: string; mode: 'timer' | 'stopwatch'; startedAt: number; minutes?: number }>
+  revision?: number
 }
 
 export type LogEntry = {
@@ -59,6 +60,7 @@ const defaultKids: ChildProfile[] = [
 export const useKidsStore = defineStore('kids', () => {
   const kids = ref<ChildProfile[]>([...defaultKids])
   const pin = ref('2042')
+  const revision = ref<number>(0)
   const sync = useSyncStore()
   const live = useLiveTimersStore()
   let pollId: number | undefined
@@ -85,6 +87,7 @@ export const useKidsStore = defineStore('kids', () => {
       const parsed = JSON.parse(raw) as PersistedState
       if (parsed.kids?.length) kids.value = parsed.kids.map((k) => normalizeKid(k))
       if (parsed.pin) pin.value = parsed.pin
+      if (typeof parsed.revision === 'number') revision.value = parsed.revision
     } catch (error) {
       console.warn('Konnte gespeicherte Daten nicht laden', error)
     }
@@ -95,6 +98,7 @@ export const useKidsStore = defineStore('kids', () => {
     const payload: PersistedState = {
       kids: kids.value,
       pin: pin.value,
+      revision: revision.value,
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
   }
@@ -110,6 +114,7 @@ export const useKidsStore = defineStore('kids', () => {
       if (data.kids?.length) kids.value = data.kids.map((k) => normalizeKid(k))
       if (data.pin) pin.value = data.pin
       if (data.runningTimers) live.hydrate(data.runningTimers)
+      if (typeof (data as any).revision === 'number') revision.value = (data as any).revision
       persist()
     } catch (error) {
       console.warn('Konnte Server-Status nicht laden', error)
@@ -234,6 +239,7 @@ export const useKidsStore = defineStore('kids', () => {
   return {
     kids,
     pin,
+    revision,
     kidSummaries,
     addKid,
     updateKid,
